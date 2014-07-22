@@ -16,7 +16,7 @@
 #include <QInputDialog>
 #include <QDateTime>
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(QWidget *parent) ://constructs main application window with the given parent
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
@@ -38,12 +38,12 @@ MainWindow::MainWindow(QWidget *parent) :
     direction2 = 0;
 
     //"Save" files
-    (void)QDir::current().mkdir("Logs");
-    debugfile.append(QDateTime::currentDateTime().toString());
-    debugfile.append(".txt");
+    (void)QDir::current().mkdir("Logs");//makes a directory called Logs in the current directory
+    debugfile.append(QDateTime::currentDateTime().toString()); //add current date and time to debug file
+    debugfile.append(".txt"); //add text file extension to debug file
     gpsfile = "GPS Coordinates - ";
-    gpsfile.append(QDateTime::currentDateTime().toString());
-    gpsfile.append(".txt");
+    gpsfile.append(QDateTime::currentDateTime().toString());//add current date and time to gps file
+    gpsfile.append(".txt");//add text file extension to gps file
 
 
     //Files from which the streams are read
@@ -51,27 +51,27 @@ MainWindow::MainWindow(QWidget *parent) :
     QString gpspath; //GPS stream
     QString vpath, cpath; //Vehicle and camera accelerometer streams
 
-    ctrlrpath.append("WolfTracker Text/feedback.txt");
-    gpspath.append("WolfTracker Text/gps.txt");
-    vpath.append("WolfTracker Text/vehicle.txt");
-    cpath.append("WolfTracker Text/camera.txt");
+    ctrlrpath.append("WolfTracker Text/feedback.txt");//feedback file to controller path
+    gpspath.append("WolfTracker Text/gps.txt");//add gps file to gps path
+    vpath.append("WolfTracker Text/vehicle.txt");//add vehicle file to vehicle path
+    cpath.append("WolfTracker Text/camera.txt");//add camera file to camera path
 
     //Monitor user-friendly actions sent by controller over stream
-    controller = new QFileSystemWatcher(this);
-    controller->addPath(ctrlrpath);
+    controller = new QFileSystemWatcher(this);//provides an interface for monitoring controller files and directories for modifications
+    controller->addPath(ctrlrpath);//adds controller path to file system watcher
     connect(controller, SIGNAL(fileChanged(const QString &)), this, SLOT(feedback(const QString &)));
 
     //Monitor text files connected to vehicle, camera, and gps streams
-    vStream = new QFileSystemWatcher(this);
-    vStream->addPath(vpath);
+    vStream = new QFileSystemWatcher(this);//provides an interface for monitoring vehicle files and directories for modifications
+    vStream->addPath(vpath);//adds vehicle path to file system watcher
     connect(vStream, SIGNAL(fileChanged(const QString &)), this, SLOT(vehicledeg(const QString &)));
 
-    cStream = new QFileSystemWatcher(this);
-    cStream->addPath(cpath);
+    cStream = new QFileSystemWatcher(this);//provides an interface for monitoring camera files and directories for modifications
+    cStream->addPath(cpath);//adds camera path to file system watcher
     connect(cStream, SIGNAL(fileChanged(const QString &)), this, SLOT(cameradeg(const QString &)));
 
-    gps = new QFileSystemWatcher(this);
-    gps->addPath(gpspath);
+    gps = new QFileSystemWatcher(this);//provides an interface for monitoring gps files and directories for modifications
+    gps->addPath(gpspath);//adds vehicle path to file system watcher
     connect(gps, SIGNAL(fileChanged(const QString &)), this, SLOT(gpscoord(const QString &)));
 
 
@@ -83,8 +83,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
 }
 
-MainWindow::~MainWindow()
+MainWindow::~MainWindow()//destructor for MainWindow
 {
+    //deallocate pointers
     delete ui;
     delete controller;
     delete vStream;
@@ -104,9 +105,9 @@ void MainWindow::paintEvent(QPaintEvent *)
 {
 
     //Clean circle
-    QPainter container1(this);
-    container1.translate(132, 348 + 120);
-    container1.drawEllipse(QPointF(0,0), 75, 75);
+    QPainter container1(this);//performs low-level painting on widgets and other paint devices
+    container1.translate(132, 348 + 120);//translates coordinate system with given offset (348+120)
+    container1.drawEllipse(QPointF(0,0), 75, 75);//draws ellipse at center (0,0)with radii 75 and 75
     //QPainter container2(this);
     //container2.translate(290, 348 + 10);
     //container2.drawLine(QPointF(0,0), QPointF(0, 140));
@@ -115,78 +116,108 @@ void MainWindow::paintEvent(QPaintEvent *)
     //Main vehicle module
     QPainter vehicle(this);
     QPainterPath triangle;
-    triangle.setFillRule(Qt::WindingFill);
+    triangle.setFillRule(Qt::WindingFill);//determines whether a point is inside the shape using nonzero winding rule
 
-    vehicle.translate(132, 348 + 120);
+    vehicle.translate(132, 348 + 120);//translates coordinate system with given offset (348+120)
 
-    vehicle.rotate(vRotate);
+    vehicle.rotate(vRotate);//rotates the given angle clockwise
 
-    triangle.moveTo(0, -55);
-    triangle.lineTo(-10, -45);
-    triangle.lineTo(10, -45);
-    triangle.lineTo(0, -55);
-    vehicle.fillPath(triangle, Qt::black);
+    triangle.moveTo(0, -55);//moves current position to given coordinates and starts new subpath closing old path
+    triangle.lineTo(-10, -45);//draws line from current position to given coordinates
+    triangle.lineTo(10, -45);//draws line from current position to given coordinates
+    triangle.lineTo(0, -55);//draws line from current position to given coordinates
+    vehicle.fillPath(triangle, Qt::black);//fills the path using black
 
     //Vehicle body
+    //fills the rectangle beginning at the coordinates(-31,-45) with a width of 60 and height of 90 using dark gray
     vehicle.fillRect(-31, -45, 60, 90, Qt::darkGray);
+    //draws the rectangle beginning at the coordinates(-31,-45) with a width of 60 and height of 90
     vehicle.drawRect(-31, -45, 60, 90);
 
     //Vehicle wheels
+    //fills the rectangle beginning at the coordinates(-38,-55) with a width of 15 and height of 20 using black
     vehicle.fillRect(-38, -55, 15, 20, Qt::black);
+    //fills the rectangle beginning at the coordinates(23,-55) with a width of 15 and height of 20 using black
     vehicle.fillRect(23, -55, 15, 20, Qt::black);
+    //fills the rectangle beginning at the coordinates(-38,-10) with a width of 15 and height of 20 using black
     vehicle.fillRect(-38, -10, 15, 20, Qt::black);
+    //fills the rectangle beginning at the coordinates(23,-10) with a width of 15 and height of 20 using black
     vehicle.fillRect(23, -10, 15, 20, Qt::black);
+    //fills the rectangle beginning at the coordinates(-38,35) with a width of 15 and height of 20 using black
     vehicle.fillRect(-38, 35, 15, 20, Qt::black);
+    //fills the rectangle beginning at the coordinates(23,35) with a width of 15 and height of 20 using black
     vehicle.fillRect(23, 35, 15, 20, Qt::black);
 
     /********************************************************/
     //Vehicle-lift module
     QPainterPath triangle2;
-    triangle2.setFillRule(Qt::WindingFill);
+    triangle2.setFillRule(Qt::WindingFill);//determines whether a point is inside the shape using nonzero winding rule
 
     QPainter lift(this);
-    lift.translate(385, 348 + 122);
-    lift.rotate(tilt);
+    lift.translate(385, 348 + 122); //translates coordinate system with given offset (348+122)
+    lift.rotate(tilt);//rotates the given angle clockwise
 
     //Vehicle body
+    //fills the rectangle beginning at the coordinates(-50,-30) with a width of 100 and height of 30 using dark gray
     lift.fillRect(-50, -30, 100, 30, Qt::darkGray);
+    //draws the rectangle beginning at the coordinates(-50,-30) with a width of 100 and height of 30
     lift.drawRect(-50, -30, 100, 30);
 
+    //set brush to black
     lift.setBrush(Qt::black);
+    //draws ellipse at center (0,0)with radii 15 and 15
     lift.drawEllipse(QPoint(0,0), 15, 15);
+    //draws ellipse at center (-40,0)with radii 15 and 15
     lift.drawEllipse(QPoint(-40, 0), 15, 15);
+    //draws ellipse at center (40,0)with radii 15 and 15
     lift.drawEllipse(QPoint(40, 0), 15, 15);
+    //set brush to gray
     lift.setBrush(Qt::gray);
+    //draws ellipse at center (0,0)with radii 7 and 7
     lift.drawEllipse(QPoint(0,0), 7, 7);
+    //draws ellipse at center (-40,0)with radii 7 and 7
     lift.drawEllipse(QPoint(-40, 0), 7, 7);
+    //draws ellipse at center (40,0)with radii 7 and 7
     lift.drawEllipse(QPoint(40, 0), 7, 7);
     //lift.fillRect(-55, -10, 25, 15, Qt::black);
     //lift.fillRect(-12, -10, 25, 15, Qt::black);
     //lift.fillRect(30, -10, 25, 15, Qt::black);
 
     //Camera
+    //fills the rectangle beginning at the coordinates(-5,50) with a width of 10 and height of 20 using blue
     lift.fillRect(-5, -50, 10, 20, Qt::blue);
+    //moves current position to given coordinates and starts new subpath closing old path
     triangle2.moveTo(-13, -42);
+    //draws line from current position to given coordinates
     triangle2.lineTo(-5, -50);
+    //draws line from current position to given coordinates
     triangle2.lineTo(-5, -35);
+    //draws line from current position to given coordinates
     triangle2.lineTo(-13, -42);
+    //fills the path using blue
     lift.fillPath(triangle2, Qt::blue);
 
     /*********************************************************/
     //Camera module
     QPainter camera(this);
     QPainterPath camdir;
-    camdir.setFillRule(Qt::WindingFill);
+    camdir.setFillRule(Qt::WindingFill);//determines whether a point is inside the shape using nonzero winding rule
 
-    camera.translate(132, 348 + 110);
-    camera.rotate(cRotate);
+    camera.translate(132, 348 + 110);//translates coordinate system with given offset (348+110)
+    camera.rotate(cRotate);//rotates the given angle clockwise
 
+    //moves current position to given coordinates and starts new subpath closing old path
     camdir.moveTo(0, -33);
+    //draws line from current position to given coordinates
     camdir.lineTo(-8, -25);
+    //draws line from current position to given coordinates
     camdir.lineTo(8, -25);
+    //draws line from current position to given coordinates
     camdir.lineTo(0, -33);
+    //fills the path using blue
     camera.fillPath(camdir, Qt::blue);
 
+    //fills the rectangle beginning at the coordinates(-5,-25) with a width of 10 and height of 25 using blue
     camera.fillRect(-5, -25, 10, 25, Qt::blue);
 
     //Redraw modules for new positions
@@ -198,7 +229,7 @@ void MainWindow::paintEvent(QPaintEvent *)
  */
 void MainWindow::feedback(const QString & path)
 {
-    QFile file(path);
+    QFile file(path);//provides interface for reading and writing to files
     controller->addPath(path);
 
   file.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -231,8 +262,8 @@ void MainWindow::feedback(const QString & path)
     //else if(newfbLine[0] == QChar('Y character');
       //ui->textBrowser->append("Centering camera");
 
-  file.flush();
-  file.close();
+  file.flush();//transmits all accumulated characters to the file
+  file.close();//close file
 
     //Immediately scroll to the bottom of the text box i.e. latest line
     QScrollBar *sb = ui->textBrowser->verticalScrollBar();
@@ -243,9 +274,9 @@ void MainWindow::feedback(const QString & path)
 /*
  * Get the position data from the vehcile accelerometer
  */
-void MainWindow::vehicledeg(const QString & path)
+void MainWindow::vehicledeg(const QString & path)//vehicle degree
 {
-    QFile file(path);
+    QFile file(path);//provides interface for reading and writing to files
     vStream->addPath(path);
 
   file.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -257,18 +288,18 @@ void MainWindow::vehicledeg(const QString & path)
     //Get newest info
     while(!stream.atEnd())
     {
-        data = stream.readLine();
+        data = stream.readLine();//read line from file
 
     }
-    datanum = data.toInt() % 360;
-    qDebug() << datanum;
+    datanum = data.toInt() % 360; //turn last line into integer and get remainder of dividing by 360
+    qDebug() << datanum; //writes number to the stream
 
     //Output turns to feedback
     if(datanum == 359 && vRotate == 0)
     {
         if(direction1 != -1)
         {
-            ui->textBrowser->append("Turning left");
+            ui->textBrowser->append("Turning left"); //if direction 1 is not -1 the device is turning left
             direction1 = -1;
         }
         else
@@ -278,7 +309,7 @@ void MainWindow::vehicledeg(const QString & path)
     {
         if(direction1 == 1)
         {
-            ui->textBrowser->append("Turning right");
+            ui->textBrowser->append("Turning right"); //if direction 1 is 1 the device is turning right
             direction1 = 1;
         }
         else
@@ -288,7 +319,7 @@ void MainWindow::vehicledeg(const QString & path)
     {
         if(direction1 != -1)
         {
-            ui->textBrowser->append("Turning left");
+            ui->textBrowser->append("Turning left");//if direction 1 is not -1 the device is turning left
             direction1 = -1;
         }
         else
@@ -298,7 +329,7 @@ void MainWindow::vehicledeg(const QString & path)
     {
         if(direction1 != 1)
         {
-            ui->textBrowser->append("Turning right");
+            ui->textBrowser->append("Turning right");//if direction 1 is not 1 the device is turning right
             direction1 = 1;
         }
         else
@@ -314,17 +345,17 @@ void MainWindow::vehicledeg(const QString & path)
     tilt = datanum;
     tilt += 30;
 
-  file.flush();
-  file.close();
+  file.flush();//transmits all accumulated characters to the file
+  file.close();//closes file
 
 }
 
 /*
  * Get the rotation degree data from the camera accelerometer
  */
-void MainWindow::cameradeg(const QString & path)
+void MainWindow::cameradeg(const QString & path)//camera degree
 {
-    QFile file(path);
+    QFile file(path);//provides interface for reading and writing to files
     cStream->addPath(path);
 
   file.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -336,17 +367,17 @@ void MainWindow::cameradeg(const QString & path)
     //Get newest info
     while(!stream.atEnd())
     {
-        data = stream.readLine();
+        data = stream.readLine();//read line from file
 
     }
-    datanum = data.toInt() % 360;
+    datanum = data.toInt() % 360;//turn last line into integer and get remainder of dividing by 360
 
     //Output turns to feedback
     if(datanum == 359 && vRotate == 0)
     {
         if(direction2 != -1)
         {
-            ui->textBrowser->append("Looking left");
+            ui->textBrowser->append("Looking left");//if direction 2 is not -1 the device is looking left
             direction2 = -1;
         }
         else
@@ -356,7 +387,7 @@ void MainWindow::cameradeg(const QString & path)
     {
         if(direction2 == 1)
         {
-            ui->textBrowser->append("Looking right");
+            ui->textBrowser->append("Looking right");//if direction 1 is 1 the device is looking right
             direction2 = 1;
         }
         else
@@ -366,7 +397,7 @@ void MainWindow::cameradeg(const QString & path)
     {
         if(direction2 != -1)
         {
-            ui->textBrowser->append("Looking left");
+            ui->textBrowser->append("Looking left");//if direction 2 is not -1 the device is looking left
             direction2 = -1;
         }
         else
@@ -376,7 +407,7 @@ void MainWindow::cameradeg(const QString & path)
     {
         if(direction2 != 1)
         {
-            ui->textBrowser->append("Looking right");
+            ui->textBrowser->append("Looking right");//if direction 2 is not 1 the device is looking right
             direction2 = 1;
         }
         else
@@ -387,17 +418,17 @@ void MainWindow::cameradeg(const QString & path)
     //Rotate degree vals
     cRotate = datanum;
 
-  file.flush();
-  file.close();
+  file.flush();//transmits all accumulated characters to the file
+  file.close();//closes file
 
 }
 
 /*
  * Get the coordinates from the GPS
  */
-void MainWindow::gpscoord(const QString & path)
+void MainWindow::gpscoord(const QString & path)//gps coordinates
 {
-    QFile file(path);
+    QFile file(path);//provides interface for reading and writing to files
     gps->addPath(path);
 
   file.open(QIODevice::ReadOnly | QIODevice::Text);
@@ -408,18 +439,18 @@ void MainWindow::gpscoord(const QString & path)
     //Get newest info
     while(!stream.atEnd())
     {
-        data = stream.readLine();
+        data = stream.readLine();//read line from file
 
     }
 
     //GPS coordinate
-    coordinate = data;
+    coordinate = data;//set last line from file as gps coordinate
 
     ui->textBrowser_2->setPlainText(coordinate);
-    ui->textBrowser_2->setAlignment(Qt::AlignCenter);
+    ui->textBrowser_2->setAlignment(Qt::AlignCenter);//centers vertically and horizontally
 
-  file.flush();
-  file.close();
+  file.flush();//transmits all accumulated characters to the file
+  file.close();//closes file
 
 }
 /*
@@ -432,8 +463,8 @@ void MainWindow::on_pushButton_clicked()
     QProcess* process = new QProcess(this);
     QString temp = "./Client";
     QStringList args;
-    args << "192.168.1.102"<<"8888"<<"640"<<"480";
-    process->start(temp, args, 0);
+    args << "192.168.1.102"<<"8888"<<"640"<<"480";//creates list of strings
+    process->start(temp, args, 0);//starts client program in a new process passing the command line arguments in args
 
     ui->textBrowser->append("Camera stream restarted.");
 }
@@ -443,24 +474,24 @@ void MainWindow::on_pushButton_clicked()
  */
 void MainWindow::createActions()
 {
-    exit = new QAction(tr("Exit"), this);
-    exit->setShortcut(QKeySequence::Close);
+    exit = new QAction(tr("Exit"), this);//constructs exit action
+    exit->setShortcut(QKeySequence::Close);//close window using Ctrl+F4 or Ctrl+W
     connect(exit, SIGNAL(triggered()), this, SLOT(fExit()));
 
-    info = new QAction(tr("Info"), this);
-    info->setShortcut(QKeySequence::HelpContents);
+    info = new QAction(tr("Info"), this);//constructs info action
+    info->setShortcut(QKeySequence::HelpContents);//open help contents with F1 on Windows and Ctrl+? on Mac OS X
     connect(info, SIGNAL(triggered()), this, SLOT(iInfo()));
 
-    calibrate = new QAction(tr("Calibrate Vehicle"), this);
-    calibrate->setShortcut(Qt::Key_F5);
+    calibrate = new QAction(tr("Calibrate Vehicle"), this);//constructs calibrate vehicle action
+    calibrate->setShortcut(Qt::Key_F5);//calibrate vehicle by hitting F5
     connect(calibrate, SIGNAL(triggered()), this, SLOT(eCalibrate()));
 
-    saveFB = new QAction(tr("Save Feedback"), this);
-    saveFB->setShortcut(QKeySequence::Save);
+    saveFB = new QAction(tr("Save Feedback"), this);//constructs save feedback action
+    saveFB->setShortcut(QKeySequence::Save);//save feedback using Ctrl+S
     connect(saveFB, SIGNAL(triggered()), this, SLOT(fSaveFB()));
 
-    saveGPS = new QAction(tr("Save GPS Coordinate"), this);
-    saveGPS->setShortcut(Qt::Key_F6);
+    saveGPS = new QAction(tr("Save GPS Coordinate"), this);//constructs save GPS coordinate action
+    saveGPS->setShortcut(Qt::Key_F6);//save GPS coordinate using F6
     connect(saveGPS, SIGNAL(triggered()), this, SLOT(fSaveGPS()));
 
 }
@@ -470,17 +501,17 @@ void MainWindow::createActions()
  */
 void MainWindow::createMenus()
 {
-    file = menuBar()->addMenu(tr("File"));
-    file->addAction(saveFB);
-    file->addAction(saveGPS);
-    file->addAction(exit);
+    file = menuBar()->addMenu(tr("File"));//add file menu to menu bar
+    file->addAction(saveFB);//add save feedback under file menu
+    file->addAction(saveGPS);//add save gps under file menu
+    file->addAction(exit);//add exit under file menu
 
-    edit = menuBar()->addMenu(tr("Edit"));
-    edit->addAction(calibrate);
+    edit = menuBar()->addMenu(tr("Edit"));//add edit menu to menu bar
+    edit->addAction(calibrate);//add calibrate under edit menu
 
 
-    about = menuBar()->addMenu(tr("Help"));
-    about->addAction(info);
+    about = menuBar()->addMenu(tr("Help"));//add help menu to menu bar
+    about->addAction(info);//add info under help menu
 
 }
 
@@ -496,7 +527,7 @@ void MainWindow::fSaveFB()
         return;
 
     QTextStream out(&file);
-    out << ui->textBrowser->document()->toPlainText();
+    out << ui->textBrowser->document()->toPlainText();//write current feedback stream to output file
     file.close();
 
     QDir::setCurrent("..");  //Return from Logs folder
@@ -529,7 +560,7 @@ void MainWindow::fSaveGPS()
         return;
 
     QTextStream out(&file);
-    for(QStringList::iterator it = gpslist.begin(); it != gpslist.end(); ++it)
+    for(QStringList::iterator it = gpslist.begin(); it != gpslist.end(); ++it)//prints coordinates to output file
     {
       if(it->isEmpty())
           continue;
@@ -579,6 +610,7 @@ void MainWindow::iInfo()
     msgBox = new QMessageBox;
 
     QString helpBox;
+
     helpBox.append("\n");
     helpBox.append("\"GPS Coordinates\":\n");
     helpBox.append("-    Displays the GPS coordinates of the tracker\n\n");
@@ -599,9 +631,9 @@ void MainWindow::iInfo()
     helpBox.append("-    Visual representation of the raising and lowering of the\n");
     helpBox.append("     vehicle as it traverses terrain.");
 
-    msgBox->setText(helpBox);
+    msgBox->setText(helpBox);//writes information to help menu
 
     //msgBox->setIcon(QMessageBox::Question);
-    msgBox->setStandardButtons(QMessageBox::Ok);
-    msgBox->exec();
+    msgBox->setStandardButtons(QMessageBox::Ok);//sets OK button
+    msgBox->exec();//shows the message block
 }

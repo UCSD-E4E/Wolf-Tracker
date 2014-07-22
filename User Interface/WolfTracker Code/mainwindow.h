@@ -1,4 +1,6 @@
+//include guard: prevents compilation error from MAINWINDOW_H being defined twice
 #ifndef MAINWINDOW_H
+//if it is not defined define it
 #define MAINWINDOW_H
 
 #include <QMainWindow>

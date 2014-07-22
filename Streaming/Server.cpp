@@ -1,9 +1,12 @@
 //Author: Herbert Torosyan & Tom Xie
 
-
+//replaces every instance of "FREQ" with 22050
 #define FREQ 22050  //Sample Rate
+//replaces every instance of "CAP_SIZE" with 2048
 #define CAP_SIZE 2048  //How much to capture at a time (latency)
+//replaces every instance of "NUM_BUFFERS" with 3
 #define NUM_BUFFERS 3
+//replaces every instance of "BUFFER_SIZE" with 4096
 #define BUFFER_SIZE 4096
 
 #include <netinet/in.h>
@@ -27,6 +30,7 @@
 #include <sys/socket.h>
 #include <iostream>
 
+//replaces every instance of "PORT" with 8888
 #define PORT 8888
 using namespace cv;
 using namespace LibSerial;
@@ -46,7 +50,7 @@ int bloop=0;
 int trig=1;
 int acounter=0;
 
-std::fstream file; //fstream object
+std::fstream file; //file stream object
 
 //allows multiple program threads to share the same resource,
 //such as file access, but not simultaneously
@@ -83,6 +87,7 @@ int main(int argc, char** argv)
      //capture from the default cam which is represented by 0
      capture = cvCaptureFromCAM(0);
 
+     //end program if camera is not active
      if(capture==0)
       quit("CAM 0 not active",1);
 
@@ -110,7 +115,7 @@ int main(int argc, char** argv)
    }
 
    /* This is the main program loop that operates by grabing a frame from the selected camera.
-    * You can choose to switch between two cameras and i handle that through the cameraTeigger
+    * You can choose to switch between two cameras and i handle that through the cameraTrigger
     * variable which indicates which camera to query the frame from. If the secondary camera is
     * selected i have to release the current one from memory and initalize the secondary one to
     * become the primary one and starting grabbing frames from that camera.
@@ -139,11 +144,13 @@ int main(int argc, char** argv)
 	   {
 		   if(capture!=0)
 		   {
-		   	  cvReleaseCapture(&capture);
+			  //deallocates the camera from memory
+			  cvReleaseCapture(&capture);
+			  //initalized the camera 1
 		   	  capture2 = cvCaptureFromCAM(1);
 		   	  capture=0;
 		   }
-
+		   	   //grabs, decodes and returns the next video frame
 		   		img0 = cvQueryFrame(capture2);
 
 
@@ -242,7 +249,7 @@ void* streamServer(void* arg)
 			//we set bloop equal to 2 becuase we dont want the main method to grab any data when we are sending data
 			bloop=2;
 			vector<int> param = vector<int>(2);
-			param[0]=CV_IMWRITE_JPEG_QUALITY;
+			param[0]=CV_IMWRITE_JPEG_QUALITY;//save as Jpeg
 
 
 			//This is the comprestion factor, the lower the number the higher the compresssion and the lower the image quality.
@@ -331,21 +338,25 @@ void quit(char* msg, int retval)
 {
     fprintf(stderr, "just went inQUITTTTTT.\n");
 
-
+    //print nothing if msg is NULL and print the message if msg is not NULL
    fprintf(stdout, "%s", (msg == NULL ? "" : msg));
    fprintf(stdout, "\n");
 
    //if (file) file->close();
+   //close serial connection and sockets
    serial_port.Close();
    if (clientsock) close(clientsock);
    if (serversock) close(serversock);
+   
+   //deallocates the camera from memory
    if (capture) cvReleaseCapture(&capture);
    if (capture2) cvReleaseCapture(&capture2);
    if(!(img0.empty())) img0.release();
    if(!(img1.empty())) img1.release();
    if(!(img2.empty())) img2.release();
+   //destroys pthread
    pthread_mutex_destroy(&mutex);
-
+   //end program
    exit(retval);
 }
 
@@ -413,24 +424,27 @@ void* streamSerial(void* arg)
        }
        if ( ! serial_port.good() )
             {
+    	   	   //prints error message if serial port cannot be opened
                 std::cerr << "[" << __FILE__ << ":" << __LINE__ << "] "
                           << "Error: Could not open serial port."
                           << std::endl ;
                 //exit(1) ;
             }
-       serial_port.SetBaudRate( SerialStreamBuf::BAUD_9600 ) ;
+       serial_port.SetBaudRate( SerialStreamBuf::BAUD_9600 ) ;//sets the data rate for serial data transmission
             if ( ! serial_port.good() )
             {
-                std::cerr << "Error: Could not set the baud rate." <<
+            	//prints error message if serial port cannot set baud rate
+            	std::cerr << "Error: Could not set the baud rate." <<
        std::endl ;
                 //exit(1) ;
             }
             //
             // Set the number of data bits.
             //
-            serial_port.SetCharSize( SerialStreamBuf::CHAR_SIZE_8 ) ;
+            serial_port.SetCharSize( SerialStreamBuf::CHAR_SIZE_8 ) ;//sets character size of serial connection
             if ( ! serial_port.good() )
             {
+            	//prints error message if serial port cannot set character size
                 std::cerr << "Error: Could not set the character size." <<
        std::endl ;
                 //exit(1) ;
@@ -438,9 +452,10 @@ void* streamSerial(void* arg)
             //
             // Disable parity.
             //
-            serial_port.SetParity( SerialStreamBuf::PARITY_NONE ) ;
+            serial_port.SetParity( SerialStreamBuf::PARITY_NONE ) ;//sets parity for serial connection
             if ( ! serial_port.good() )
             {
+            	//prints error message if serial port cannot disable parity
                 std::cerr << "Error: Could not disable the parity." <<
        std::endl ;
                 //exit(1) ;
@@ -451,6 +466,7 @@ void* streamSerial(void* arg)
             serial_port.SetNumOfStopBits( 1 ) ;
             if ( ! serial_port.good() )
             {
+            	//prints error message if serial port cannot set number of stop bits
                 std::cerr << "Error: Could not set the number of stop bits."
                           << std::endl ;
                 //exit(1) ;
@@ -461,6 +477,7 @@ void* streamSerial(void* arg)
             serial_port.SetFlowControl( SerialStreamBuf::FLOW_CONTROL_NONE ) ;
             if ( ! serial_port.good() )
             {
+            	//prints error message if serial port cannot use hardware flow control
                 std::cerr << "Error: Could not use hardware flow control."
                           << std::endl ;
                 //exit(1) ;
@@ -483,6 +500,7 @@ void* streamSerial(void* arg)
        serialIsOn=1;
 	   if(file==0)
 	   {
+		   //prints error message if file stream variable is not set
 		   fprintf(stderr,"FAILEDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
 		   perror("fopen");
 	   }
@@ -511,6 +529,7 @@ void* streamSerial(void* arg)
 		   //check to see correct number of bytes received
 		   if (bytes != (sizeof(char))) {
 			   trig=0;
+			   	   	   	   //print error message and close socket correct # of bytes not received
 		                  fprintf(stderr, "Connection closed stream serial.\n");
 		                  close(clientserialSock);
 
@@ -521,6 +540,7 @@ void* streamSerial(void* arg)
 		                  {
 			                  fprintf(stderr, "Connection closed into the wild.\n");
 
+			                  //if socket accept function fails print error message
 		                  if ((clientserialSock = accept(serverserialSock, NULL, NULL)) <0) {
 			                  fprintf(stderr, "Connection closed into the if.\n");
 			            	   perror("accept() failed");
@@ -548,12 +568,15 @@ void* streamSerial(void* arg)
 			   //check to see correct number of bytes received
 			   if (bytes != (sizeof(int))) {
 				   trig=0;
+				   
+				   //print error message and close socket correct # of bytes not received
 			                  fprintf(stderr, "Connection closed stream serial part 2.\n");
 			                  close(clientserialSock);
 
 			                  int trig2=2;
 			                  while(trig2)
 			                  {
+			                	  //if socket accept function fails print error message
 			                  if ((clientserialSock = accept(serverserialSock, NULL, NULL)) <0) {
 			                      //quit("accept() failed", 1);
 			                  }
@@ -568,17 +591,24 @@ void* streamSerial(void* arg)
 			   //this writes the magnitude of the joystick to the arduino
                serial_port.write(&temp,1);
 
-               //Now we also have to check the sighn and write the appropriate one
+               //Now we also have to check the sign and write the appropriate one
+               
 			   if(val>=0){
 				char plus = '+';
+				//if the value is positive write plus character over serial port
 				serial_port.write(&plus,1);
+				//if value is 10 change to 9
 			    if(val==10) val = 9;
+			    //write the value over the serial port
 			    serial_port.write(&controlVals[val],1);
 			   }
 			   else{
 				char minus = '-';
+				//if the value is negative write plus character over serial port
 				serial_port.write(&minus,1);
+				//if value is -10 change to -9
 				if(val==-10) val = -9;
+				//write the value over the serial port
 				serial_port.write(&controlVals[(val*-1)],1);
 			   }
 
@@ -594,7 +624,7 @@ void* streamSerial(void* arg)
 			   {
 				   acounter++;
 			   }
-			   //The reason we check to se when acounter is 2 is because we want the user to realease the key before
+			   //The reason we check to see when acounter is 2 is because we want the user to realease the key before
 			   //we switch cameras
 			   if(temp=='A' && acounter==2)
 			   {
@@ -609,7 +639,7 @@ void* streamSerial(void* arg)
 					   cameraTriger='0';
 				   }
 			   }
-			   //We will only reach this is the user select to center the camera, in which we write C to the arduino
+			   //We will only reach this if the user selects to center the camera, in which we write C to the arduino
 			   else
 			   {
 			   char plop = 'C';

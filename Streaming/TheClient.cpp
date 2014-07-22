@@ -9,13 +9,17 @@
 #include <unistd.h>
 #include <stdio.h>
 
+//include guard: prevents compilation error from EV_SYN being defined twice
 #ifndef EV_SYN
+//if it is not defined, it defines EV_SYN
 #define EV_SYN 0
 #endif
 
+//create string arrays of events and keys
 char *events[EV_MAX + 1]={};
 char *keys[KEY_MAX + 1] = {};
 
+//create string arrays for absolute values, relatives, absolutes, LED's, repeats, and miscellaneous 
 char *absval[5] = { "Value", "Min  ", "Max  ", "Fuzz ", "Flat " };
 
 char *relatives[REL_MAX + 1] = {};
@@ -29,19 +33,42 @@ char *repeats[REP_MAX + 1]={};
 
 char *sounds[SND_MAX + 1] ={};
 
+//creates pointer to string array of names
 char **names[EV_MAX + 1] ={};
 
+//preprocessor directives
+//replaces every instance of "BITS_PER_LONG" in the program with the number of bits needed for a long integer (8 times the number)
 #define BITS_PER_LONG (sizeof(long) * 8)
+//replaces every instance of "NBITS(x)" in the program with number of bits
 #define NBITS(x) ((((x)-1)/BITS_PER_LONG)+1)
+//replaces every instance of OFF(x) with the offset
 #define OFF(x)  ((x)%BITS_PER_LONG)
+//replaces every instance of "BIT(x)" with 1 unsigned long (UL) left shifted by offset x
 #define BIT(x)  (1UL<<OFF(x))
+//replaces every instance of "LONG(X)" with long integer
 #define LONG(x) ((x)/BITS_PER_LONG)
+/**replaces every instance of "test_bit(bit,array)" with following operation
+*1. the offset of bit ex: 2
+*2. find the element of index bit from array ex: array[5] = 16
+*3. shift element of index bit from array right by the offset of bit ex: 16 >> 2 = 4
+*16 = 10000 shifted right 2 = 00100 = 4
+*4. do a bitwise AND of the result from step 3 and 1
+*in and AND operation the bit from both numbers must be 1 to output a 1
+*ex:
+*00100 = 4
+*00001 = 1
+*-----
+*00000 = 0 
+*/
 #define test_bit(bit, array)	((array[LONG(bit)] >> OFF(bit)) & 1)
 
-
+//replaces every instance of "FREQ" with 22050
 #define FREQ 22050  //Sample Rate
+//replaces every instance of "CAP_SIZE" with 2048
 #define CAP_SIZE 2048  //How much to capture at a time (latency)
+//replaces every instance of "NUM_BUFFERS" with 3
 #define NUM_BUFFERS 3
+//replaces every instance of "BUFFER_SIZE" with 4096
 #define BUFFER_SIZE 4096
 
 #include <netinet/in.h>
@@ -101,22 +128,35 @@ int main(int argc, char** argv)
     pthread_t thread_serial;
     pthread_t thread_getArduino;
 
-
+    //if number of arguments is incorrect show the user the correct format for the command
     if (argc != 5) {
         quit("Usage: stream_client <server_ip> <server_port> <width> <height>", 0);
     }
 
     /* get the parameters */
-    server_ip   = argv[1];
-    server_port = atoi(argv[2]);
-    width       = atoi(argv[3]);
-    height      = atoi(argv[4]);
+    server_ip   = argv[1];     		//get the server IP from the command line
+    server_port = atoi(argv[2]);	//get the server port from command line and convert from string to integer
+    width       = atoi(argv[3]);	//get the width from command line and convert from string to integer
+    height      = atoi(argv[4]);	//get the height from command line and convert from string to integer
 
-    /* create image */
-    img = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 1);
-    cvZero(img);
+    /* 
+    * Creates image:
+    *creates image header and allocates image data taking image width, height, bit depth of image elements, 
+    *and number of channels per pixel
+    */
+    img = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 1); 
+    //sets all pixel values to 0
+    cvZero(img); 
 
-    /* run the streaming client as a separate thread */
+    /* Run the streaming client as a separate thread: 
+     * creates 3 new threads
+     * thread c runs the stream Client function
+     * thread serial runs the stream Serial function
+     * thread get Arduino runs the get Arduino function
+     * each pthread_create function returns 0 if successful
+     * if the function is unsuccessful it returns 1 and the program
+     * ends with a pthread_create failed error message
+     */ 
     if (pthread_create(&thread_c, NULL, streamClient, NULL)) {
         quit("pthread_create failed.", 1);
     }
@@ -132,22 +172,28 @@ int main(int argc, char** argv)
 
     while(key != 'q') {
         /**
-         * Display the received image, make it thread safe
+         * Display the received image, make it thread safe 
          * by enclosing it using pthread_mutex_lock
+         * mutex(mutual exclusion) is locked to protect access to 
+         * critical section (code that cannot be concurrently accessed by more than one thread of execution) 
          */
         pthread_mutex_lock(&mutex);
         if (is_data_ready) {
-        	//When the data is read we show the image to the client and reset the is_data_ready variable so we can recive a new image
+        	//When the data is ready we show the image to the client and reset the is_data_ready variable so we can recive a new image
             imshow("stream_client", imgage);
             is_data_ready = 0;
-            key = cvWaitKey(20);//was 30poop
+            key = cvWaitKey(20);//waits for 20 milliseconds for user to press a key
         }
-        //release the mutec lock
+        //release the mutex lock
         pthread_mutex_unlock(&mutex);
 
     }
 
-    /* user has pressed 'q', terminate the streaming client */
+    /* user has pressed 'q', terminate the streaming client:
+     * sends cancellation request to threads if the function is 
+     * unsuccessful it returns 1 and the program
+     * ends with a pthread_cancel failed error message
+     */
     if (pthread_cancel(thread_c)) {
         quit("pthread_cancel failed.", 1);
     }
@@ -158,8 +204,9 @@ int main(int argc, char** argv)
         quit("pthread_cancel failed.", 1);
     }
 
-    /* free memory */
+    /* free memory by deallocating UI window*/
     cvDestroyWindow("stream_client");
+    //end program
     quit(NULL, 0);
 }
 
@@ -188,7 +235,7 @@ void* streamClient(void* arg)
     server.sin_addr.s_addr = inet_addr(server_ip);
     server.sin_port = htons(server_port);
 
-    /* conct to server */
+    /* connect to server */
     while (connect(sock, (struct sockaddr*)&server, sizeof(server)) < 0) {
         quit("connect() failed.", 1);
     }
@@ -200,26 +247,33 @@ void* streamClient(void* arg)
     /* start receiving images */
     while(1)
     {
-    	   //set the parameters for the matrix
-    	   imgage = Mat::zeros( height,width, CV_8UC3);
+    	   /*Set the parameters for the matrix:
+    	    * creates an array of zeroes with "height" number of rows,
+    	    * "width" number of columns and the type CV_8UC3 specifies
+    	    * images with pixel values 0-255
+    	    */
+    	   imgage = Mat::zeros( height,width, CV_8UC3); 
+    	   //set image size as the product of the number of elements and element size
     	   int  imgSize = imgage.total()*imgage.elemSize();
+    	   //create unsigned character array
     	   uchar sockData[imgSize];
 
     	 //Receive data here
 
-    	           	vector<int> param = vector<int>(2);
+    	           	//create in integer vector of size 2
+    	   	   	   	vector<int> param = vector<int>(2);
 
     	            unsigned int size;
-    	            //first we get the size of the image
+    	            //first we get the size of the image from the server
     	           	bytes = recv(sock,&size,sizeof(unsigned int),0);
     	           	vector<uchar> buff = vector<uchar>(size);
-    	           	//Now using the size we know how much we have to receive
+    	           	//Now using the size we know how much we have to receive from the server
     	           	for(unsigned int x=0;x<size;x++)
     	           	{
     	              bytes = recv(sock, &buff[x], sizeof(uchar), 0);
     	           	}
 
-
+    	   //lock thread to protect access to critical section
     	   pthread_mutex_lock(&mutex);
 
     	   //Now we decode the compressed image and store it in imgage which is the frame that will be displayed to the user
@@ -244,20 +298,27 @@ void* streamClient(void* arg)
 void quit(char* msg, int retval)
 {
     if (retval == 0) {
+    	//print nothing if msg is NULL and print the message if msg is not NULL
         fprintf(stdout, "%s", (msg == NULL ? "" : msg));
+        //end line
         fprintf(stdout, "\n");
     } else {
+    	//print nothing if msg is NULL and print the error message if msg is not NULL
         fprintf(stderr, "%s", (msg == NULL ? "" : msg));
+        //end line
         fprintf(stderr, "\n");
     }
 
     //if (sock) close(sock);
+    //close sockets
     close(sock);
     close(sockSerial);
+    //deallocate memory for image
     if (img) cvReleaseImage(&img);
 
+    //deallocate memory for pthread
     pthread_mutex_destroy(&mutex);
-
+    //end program
     exit(retval);
 }
 
@@ -515,8 +576,9 @@ void* streamSerial(void * arg)
 
 
 
-		//Now we need to check to se what port the controller is connected to, make sure to check
+		//Now we need to check to see what port the controller is connected to, make sure to check
 		//to see if the port is one of these if its not then go ahead and add another.
+		//open files as read only (O_RDONLY)
 		if ((fd = open("/dev/input/event12", O_RDONLY)) < 0) {
 		if ((fd = open("/dev/input/event13", O_RDONLY)) < 0) {
 		if ((fd = open("/dev/input/event11", O_RDONLY)) < 0) {
@@ -532,23 +594,31 @@ void* streamSerial(void * arg)
 		}
 		}
 		}}
+		//take file descriptor and version request to look up version
 		if (ioctl(fd, EVIOCGVERSION, &version)) {
 			perror("evtest: can't get version");
 			return 0;
 		}
 
 		//PRINTING CONTROLLER INFO
+		//print input driver version
 		printf("Input driver version is %d.%d.%d\n",
 			version >> 16, (version >> 8) & 0xff, version & 0xff);
 
+		//take file descriptor and ID request to look up ID
 		ioctl(fd, EVIOCGID, id);
+		//print input device ID
 		printf("Input device ID: bus 0x%x vendor 0x%x product 0x%x version 0x%x\n",
 			id[ID_BUS], id[ID_VENDOR], id[ID_PRODUCT], id[ID_VERSION]);
 
+		//take file descriptor and name request to look up name
 		ioctl(fd, EVIOCGNAME(sizeof(name)), name);
+		//print device name
 		printf("Input device name: \"%s\"\n", name);
 
+		//initialize buffer
 		memset(bit, 0, sizeof(bit));
+		//take file descriptor and looks up events supported by device
 		ioctl(fd, EVIOCGBIT(0, EV_MAX), bit[0]);
 		printf("Supported events:\n");
 
@@ -596,7 +666,7 @@ void* streamSerial(void * arg)
 	    server.sin_addr.s_addr = inet_addr(server_ip);
 	    server.sin_port = htons(8887);
 
-	    /* conct to server */
+	    /* connect to server */
 	    while (connect(sockSerial, (struct sockaddr*)&server, sizeof(server)) < 0) {
 	        quit("connect() failed.", 1);
 	    }
@@ -724,7 +794,7 @@ void* getArduino (void * arg)
 		    server.sin_addr.s_addr = inet_addr(server_ip);
 		    server.sin_port = htons(8886);
 
-		    /* conct to server */
+		    /* conncet to server */
 		    while (connect(sockArd, (struct sockaddr*)&server, sizeof(server)) < 0) {
 		        quit("connect() failed.", 1);
 		    }
@@ -732,7 +802,7 @@ void* getArduino (void * arg)
 		    while(1)
 		    {   usleep(700);
 
-		      //receive the data and then send it to cout.
+		      //receive the data and then send it to cout to be printed.
 		      recv(sockArd,&val,sizeof(char),0);
 		      std::cout<< val;
 		    	        pthread_testcancel();
